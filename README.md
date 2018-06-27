@@ -1,207 +1,59 @@
-# Alastria-identity : Definition of the ID for Alastria
+# DASHBOARD
 
-## Alastria ID
+## Introduction
 
-Process to create a new ID : Only identified IDs can create a new IDs in Alastria now (That's a paradox, I know). First ID to be created is Alastria itself, this iD will be able to create new organitzations, and only these certified organizations will be able to create new identities.
+> Validate Pubkey
 
-Alastria --> organizations[] --> users[]
+## INFO
 
-We will be using uPort Smart Contracts a s a basis for our Identity System. To start We will use two main components : IdentityRegister (uPortRegister) and IdentityManager.
+Mock-Users-Data in WebApp
 
-### Proxy contract
-The Proxy contract acts as a permanent identifier for a user. When interacting with other smart contracts on the blockchain the address of the proxy contract will be msg.sender for the user.
+{ user_name: "user1", password: 'user1', alastriaId:"alastriaId01",  pubkey:"0xD4186f63f08B3ef143c90A90a80791c795C3Bf39" },
 
-### IdentityRegister
-Smart Contract to store attributes for a Proxy contract (Id).
+{ user_name: "user2", password: 'user2', alastriaId:"alastriaId02",  pubkey:"0x42F50609465CcaDa390a155Fe7303F3e5DF843Dc" },
 
-### IdentityManager
-IdentityManager is a controller contract for Proxy contracts that is shared between users. This minimizes gas costs compared to each user having to have their own separate controller for their proxy, while still allowing the user to have full control over their own proxy. The IdentityManager also gives the user the power to control the proxy from multiple devices.
+{ user_name: "user3", password: 'user3', alastriaId:"alastriaId03",  pubkey:"0xC0fA90fc597b7794F4a1cd58dd1A4C4e331c0F35" },
 
-The IdentityManager should be able to perform the following actions:
+Mock-Users-Data in API-REST
 
-- Identity Creation
-  - Allow users to create a new proxy through the IdentityManager
-  - Allow users to transfer an old proxy to the IdentityManager
-- Use
-  - Relay a tx to proxy
-  - Adding of new owners
-  - Removal of owners
-  - Recovering from loss of all owner keys
-  - Changing recovery
-  - Transferring ownership of proxy away from IdentityManager
+{ alastriaId:"alastriaId01",  pubkey:"0xD4186f63f08B3ef143c90A90a80791c795C3Bf39" },
 
-The IdentityManager contract has any number of owners and one recovery key for each proxy. It also has rate limits for each caller on some of the functions. Proxies can be created, transfered to and from the IdentityManager. Owners can be added and removed, the recovery key can be changed.
+{ alastriaId:"alastriaId01",  pubkey:"0x52F50609465CcaDa390a155Fe7303F3e5DF843Dc" },
 
-### Parameters
+{ alastriaId:"alastriaId01",  pubkey:"0xC0fA90fc597b7794F4a1cd58dd1A4C4e331c0F35" },
 
-- userTimeLock : Time before new owner can control proxy
-- adminTimeLock : Time before new owner can add/remove owners
-- adminRate : Time period used for rate limiting a given key for admin functionality
+CASE USE: valid public key
 
-List of owners for a proxy (timestamp):
-- mapping(address => mapping(address => uint)) owners;
+     SIGN IN
 
-Recovery keys for a proxy:
-- mapping(address => address) recoveryKeys
+     user name: user1
+     password: user1 //  the form does not validate
+     SAVE
+     The webApp shows the basic info about user.
 
-Rate limiters for a owner of a proxy (timestamp):
-- mapping(address => mapping(address => uint)) limiter;
+     CHECK PUBLIC KEY 
+     The webApp check the webApp-User-Pubkey with the API-REST-pubkey.
+    
+CASE USE: invalid public key
 
-### Modifiers
+     SIGN IN
 
-onlyOwner(address identity)
-- (owners[identity][msg.sender] > 0 && (owners[identity][msg.sender] + userTimeLock) <= now)
+     user name: user2
+     password: user2 // the form does not validate
+     SAVE
+     The webApp shows the basic info about user.
 
-onlyOlderOwner(address identity)
-- (owners[identity][msg.sender] > 0 && (owners[identity][msg.sender] + adminTimeLock) <= now)
+     CHECK PUBLIC KEY 
+     The webApp check the webApp-User-Pubkey with the API-REST-pubkey
+          
 
-onlyRecovery(address identity)
-- (recoveryKeys[identity] == msg.sender)
+## Installation
 
-rateLimited(address identity)
-- (limiter[identity][msg.sender] < (now - adminRate))
+> The installation instructions
+    
+    * WebApp: 
+        1 npm install
+        2 ng serve
 
-validAddress(address addr)
-- (addr != address(0))
-
-### Functions
-
-createIdentity: This is how we create a new ID. It Creates a new proxy contract for an owner and recovery
-- function createIdentity(address owner, address recoveryKey) validAddress(recoveryKey)
-
-forwardTo: Forward a call via the proxy.
-- function forwardTo(Proxy identity, address destination, uint value, bytes data) onlyOwner(identity)
-
-addOwner: Allows an olderOwner to add a new owner instantly
-- function addOwner(Proxy identity, address newOwner) onlyOlderOwner(identity) rateLimited(identity)
-
-addOwnerFromRecovery: Allows a recoveryKey to add a new owner with userTimeLock waiting time
-- function addOwnerFromRecovery(Proxy identity, address newOwner) onlyRecovery(identity) rateLimited(identity)
-
-removeOwner: Allows an owner to remove another owner instantly
-- function removeOwner(Proxy identity, address owner) onlyOlderOwner(identity) rateLimited(identity)
-
-changeRecovery: Allows an owner to change the recoveryKey instantly
-- function changeRecovery(Proxy identity, address recoveryKey) onlyOlderOwner(identity) rateLimited(identity) validAddress(recoveryKey)
-
-## ANS - Alastria Name Service
-
-alastria.users.<alias> aka @<alias>
-alastria.<brand>
-
-Each brand will need to deploy a Smart contract acting as a resolver for its own domain.
-Based on ENS but with a different way of giving names
-
-### Genesis
-
-At the beginning of times we have one addres (addr0) to act as main admin for the system. It's importnat to keep that address safe (of course). IN a later stage we will turn the contracts multiowner so we don't tdepend on this unqieu address.
-
-### Deploy Generic Smart Contracts
-1. Deploy IdentityManager
-2. Deploy IdentityRegister
-3. Deploy Libs : ArrayLib
-4. Deploy ANS
-
-### Add First ID : Alastria
-1. new Account : AlastriaOwner (private key that owns the Proxy for Alastria ID)
-2. new Account : AlastriaKey (recovery Key to be stored in a USB as a backup)
-3. Using IdentityManager add a new ID for Alastria (AlastriaOwner & AlastriaKey). This will create a Proxy for the Alastria : AlastriaID.
-4. Create a Json file with basic information about Alastria. Upload it to IPFS anf get its hash.
-5. Write to IdentityRegister the hash
-6. Deploy the Resolver for Alastria
-7. Write to ANS : AlsatriaID
-
-### We need tools (nodejs/python) to :
-1. Deploy Smart Contracts easliy
-2. Deploy new Ids
-3. Write entries in the Alastria NS
-4. Write entries to the Resolvers
-
-### At this point we will have
-1. Address for ANS
-2. Address for Alastria main ID
-3. Address for the Alastria Resolver
-4. We can resolve "alastria" to the Alastria main ID address
-
-### Considerations
-1. Only AlastriaID (through IdentityManager) can add new resolvers (organizations) to the ANS.
-2. Only certified organizations can add new IDs to IdentityManager.
-
-### The API
-To make things easier for this organizations to add users in their zones we will create an API so they can (once authenticated) deploy easily new IDs.
-
-/login
-We will use webtokens (jwt).
-
-.... define process... Need to talk to you guys on slack
-
-/newId/<addr_owner>/<name>
-Deploys a new ID and sets the owner to <addr_owner>. Adds a new entry to the resolver with the name. Returns the new <addr> for the ID.
-
-/registerAttribute/<addr>/<attribute>
-Adds an atribute to the <addr>
-
-## Alastria ID App : On the phone!
-Double verification : email + SMS (phone)
-We will need a double verification to create a new Identity. The app will ask for the Phone Number and will send a verification code via SMS. The app will also ask for an email and will send a code to the email.
-
-Once the App is verified we can save basic information about the user : First Name and last names (we have 2 in Spain), address, gender and date of birth.
-
-1. Create a Smart contract representing your ID
-2. Create a file (JSON) with all your data following the standar Persona. We create a merkle tree of all the information. This way we can share anly the information we want to share and the hashes for other information. A nonce will be added whenever needed (DNI) for security reasons.
-3. Write in the registry the top of the merkle tree. AT this point thins information is not certified by anyone (not trutsable)
-4. Ask for an alias and create the alias in the ANS.
-=======
-# UPORT BASED ALASTRIA IDENTITY V.0.0.0
-Uport platform adapted to Alastria network
-
-## UportRaw contracts
-The adresses of the contracts (as Uport provide them) in the alastria test-net are:
-```
-  IdentityManager: 0xb08c53b75030eb406f4c856a524f57a35410f474
-  MetaIdentityManager: 0x28d38d5cfe3c721506665fe2c1ca165ea3c81ea6
-  proxy: 0xfc5940d3180fd294aad65d2fcc6b8c7664828cf8
-  UportRegistry: 0x4dedc4b2e4122158d0df02c3cfdd5f07326497c0
-  TxRelay: 0x815af292ba858a3256fc0d03e40b75b07fcdf317
-```
-
-## Basic Identity Manager
-Forked from uPort
-
-This is the basic identity which gives the Alastria identity manager the main features for working in the blockchain.
-
-The migrate feature has been disable for this version of alastria ID. Need to set the ownership and responsability of the identity creation.
-
-The recovery feature has been moved to the Alastria Identity Manager, to be managed with the eIDAS level.
-
-The registerIdentity feature has been removed for this version, there is not supposed to exists multiple id in multiple identity managers to be moved.
-
-This contract is not used by it self, only inherited by the Alastria Identity Manager.
-
-## Alastria Identity Manager
-Inherit from Basic Identity Manager
-
-Allows user to interface the main functions of the registry
-
-Allows user to manage different wallets o
-
-## AlastriaRegistry
-Has all the information about the IDs
-
-Has the proccess to create, validate and revoke attestations for the users
-
-The attestations points to off-chain resources (URI)
-
-## proxy
-Is the AlastriaID itself
-
-Is the interface with the world for an AlastriaID
-
-Only receive transactions and resend them to the target
-
-## How to use
-For creating an identity, the sequence diagram is the one that follows
-
-![alt text](https://github.com/alastria/alastria-identity/blob/develop/Docs/NewIdentity.png)
-
-In which the User app is the mobile phone app from the user, that is the one that has the logic for management the attestation to be stored and sended when required. Also, the app asks for user aceptance.
+    * API-REST:
+        1 maven install
