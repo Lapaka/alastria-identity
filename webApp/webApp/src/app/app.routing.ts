@@ -9,17 +9,17 @@ import { RawTransactionComponent } from './pages/raw-transaction/raw-transaction
 import { GetPublicKeyComponent } from './pages/get-public-key/get-public-key.component';
 import { LoginComponent } from './pages/login/login.component';
 import { Route404Component } from './pages/route404/route404.component';
+import { QrComponent } from './pages/qr-generator/qr.component';
 
 // Array de rutas
 const  appRoutes: Routes = [
-    { path: '', redirectTo: 'login', pathMatch: 'full' },
-    /*
-    { path: 'identity', component: IdentityComponent },
+    { path: '', redirectTo: 'generateQR', pathMatch: 'full' },
+/*     { path: 'identity', component: IdentityComponent },
     { path: 'pubkey', component: PubkeyComponent },
     { path: 'sendRawTransaction', component: RawTransactionComponent },
     { path: 'getpubkey', component: GetPublicKeyComponent },
-    */
-    { path: 'login', component: LoginComponent },
+ { path: 'login', component: LoginComponent },*/    
+    { path: 'generateQR', component: QrComponent },
     { path: '**', component: Route404Component }, //Ruta 404
 ];
 

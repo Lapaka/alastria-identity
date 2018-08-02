@@ -37,6 +37,8 @@ import { LoginComponent } from './pages/login/login.component';
 import { LoginDialogComponent } from './pages/login-dialog/login-dialog.component';
 import { CreateAccountDialogComponent } from './pages/create-account-dialog/create-account-dialog.component';
 import { Route404Component } from './pages/route404/route404.component';
+import { QrComponent } from './pages/qr-generator/qr.component';
+import { QRCodeModule } from 'angularx-qrcode';
 
 
 @NgModule({
@@ -51,6 +53,7 @@ import { Route404Component } from './pages/route404/route404.component';
     SnackbarComponent,
     GetPublicKeyComponent,
     LoginComponent,
+    QrComponent,
     LoginDialogComponent,
     CreateAccountDialogComponent,
     Route404Component
@@ -62,7 +65,7 @@ import { Route404Component } from './pages/route404/route404.component';
     FormsModule,
     ReactiveFormsModule,
     HttpClientModule,
-
+    QRCodeModule,
     BrowserAnimationsModule,
     MatButtonModule,
     MatInputModule,
