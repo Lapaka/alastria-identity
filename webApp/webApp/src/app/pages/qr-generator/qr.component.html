@@ -1,0 +1,17 @@
+<br><br>
+
+<mat-card class="example-card">
+  <mat-card-header>
+    <mat-card-title>Generate QR</mat-card-title>
+  </mat-card-header>
+
+  <mat-card-content [formGroup]="form">
+    <mat-form-field>
+        <input matInput type="text" [(ngModel)]="qrContent" placeholder="QR Content" formControlName="qrContent" (input)="changedInput($event.target.value)">
+    </mat-form-field>
+
+  </mat-card-content>
+
+  <qrcode [qrdata]="qrContent" [size]="256" [level]="'M'"></qrcode>
+
+</mat-card>
