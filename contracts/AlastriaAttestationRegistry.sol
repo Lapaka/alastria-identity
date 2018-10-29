@@ -1,5 +1,6 @@
 pragma solidity ^0.4.15;
 
+import { Statuses } from "../libraries/Statuses.sol";
 
 contract AlastriaAttestationRegistry {
 
@@ -17,13 +18,10 @@ contract AlastriaAttestationRegistry {
 
     // Attestation: Initially Valid: Only DeletedBySubject
     // Revocations: Initially Valid: Only AskIssuer or Revoked, no backwards transitions.
-    enum Status {Valid, AskIssuer, Revoked, DeletedBySubject}
-    Status constant STATUS_FIRST = Status.Valid;
-    Status constant STATUS_LAST = Status.DeletedBySubject;
-
+    
     struct Attestation {
         bool exists;
-        Status status;
+        Statuses.AttestationStatus status;
         string URI;
     }
     // Mapping subject, hash (JSON attestation)
@@ -32,7 +30,7 @@ contract AlastriaAttestationRegistry {
 
     struct Revocation {
         bool exists;
-        Status status;
+        Statuses.AttestationStatus status;
     }
     // Mapping issuer, hash (JSON attestation + AttestationSignature)
     mapping(address => mapping(bytes32 => Revocation)) private revocationRegistry;
@@ -40,7 +38,7 @@ contract AlastriaAttestationRegistry {
 
     // Events. Just for changes, not for initial set
     event AttestationDeleted (bytes32 dataHash);
-    event AttestationRevoked (bytes32 revHash, Status status);
+    event AttestationRevoked (bytes32 revHash, Statuses.AttestationStatus status);
 
     //Modifiers
     modifier validAddress(address addr) {//protects against some weird attacks
@@ -48,8 +46,8 @@ contract AlastriaAttestationRegistry {
         _;
     }
 
-    modifier validStatus (Status status) { // solidity currently check on use not at function call
-        require (status >= STATUS_FIRST && status <= STATUS_LAST);
+    modifier validStatus (Statuses.AttestationStatus status) { // solidity currently check on use not at function call
+        require (int(status) >= Statuses.AttestationStatusFirst_get() && int(status) <=  Statuses.AttestationStatusLast_get());
         _;
     }
 
@@ -61,22 +59,22 @@ contract AlastriaAttestationRegistry {
 
     function set(bytes32 dataHash, string URI) public {
         require(!attestationRegistry[msg.sender][dataHash].exists);
-        attestationRegistry[msg.sender][dataHash] = Attestation(true, Status.Valid, URI);
+        attestationRegistry[msg.sender][dataHash] = Attestation(true, Statuses.AttestationStatus.Valid, URI);
         attestationList[msg.sender].push(dataHash);
     }
 
     function deleteAttestation(bytes32 dataHash) public {
         Attestation storage value = attestationRegistry[msg.sender][dataHash];
         // only existent
-        if (value.exists && value.status != Status.DeletedBySubject) {
-            value.status = Status.DeletedBySubject;
+        if (value.exists && value.status != Statuses.AttestationStatus.DeletedBySubject) {
+            value.status = Statuses.AttestationStatus.DeletedBySubject;
             emit AttestationDeleted(dataHash);
         }
     }
 
     // If the attestation does not exists the return is a void attestation
     // If we want a log, should we add an event?
-    function subjectAttestationStatus(address subject, bytes32 dataHash) view public validAddress(subject) returns (bool exists, Status status) {
+    function subjectAttestationStatus(address subject, bytes32 dataHash) view public validAddress(subject) returns (bool exists, Statuses.AttestationStatus status) {
         Attestation storage value = attestationRegistry[subject][dataHash];
         return (value.exists, value.status);
     }
@@ -85,11 +83,11 @@ contract AlastriaAttestationRegistry {
         return (attestationList[msg.sender].length, attestationList[msg.sender]);
     }
 
-    function revokeAttestation(bytes32 revHash, Status status) validStatus (status) public {
+    function revokeAttestation(bytes32 revHash, Statuses.AttestationStatus status) validStatus (status) public {
         Revocation storage value = revocationRegistry[msg.sender][revHash];
         // No backward transition, only AskIssuer or Revoked
         if (status > value.status) {
-            if (status == Status.AskIssuer || status == Status.Revoked) {
+            if (status == Statuses.AttestationStatus.AskIssuer || status == Statuses.AttestationStatus.Revoked) {
                 value.exists = true;
                 value.status = status;
                 emit AttestationRevoked(revHash, status);
@@ -99,19 +97,19 @@ contract AlastriaAttestationRegistry {
 
     // If the attestation does not exists the return is a void attestation
     // If we want a log, should we add an event?
-    function issuerRevocationStatus(address issuer, bytes32 revHash) view public validAddress(issuer) returns (bool exists, Status status) {
+    function issuerRevocationStatus(address issuer, bytes32 revHash) view public validAddress(issuer) returns (bool exists, Statuses.AttestationStatus status) {
         Revocation storage value = revocationRegistry[issuer][revHash];
         return (value.exists, value.status);
     }
 
     // Utility function
     // Defining three status functions avoid linking the subject to the issuer or the corresponding hashes
-    function attestationStatus(Status subjectStatus, Status issuerStatus)
+    function attestationStatus(Statuses.AttestationStatus subjectStatus, Statuses.AttestationStatus issuerStatus)
         pure
         public
         validStatus(subjectStatus)
         validStatus(issuerStatus)
-        returns (Status)
+        returns (Statuses.AttestationStatus)
     {
         if (subjectStatus >= issuerStatus) {
             return subjectStatus;
